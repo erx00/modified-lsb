@@ -1,1 +1,4 @@
 venv/
+cat.jpg
+.idea/
+__pycache__
