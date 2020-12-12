@@ -1,16 +1,17 @@
 import numpy as np
 from scipy.fft import fftn, ifftn
 from utils import str_to_binary, binary_to_str
-from utils import float_to_binary, binary_to_float
+from utils import int_to_binary, binary_to_int
 
 
-# not working
+# TODO: get rid of padding
 
 def encode_lsb_fourier(image, message):
     """
     Encodes a message into the frequency domain of an image.
 
-    :param image: (ndarray) cover image
+    :param image: (ndarray) cover image (currently only
+        supports images with a single channel)
     :param message: (str) message
     :return: (ndarray) stego image
     """
@@ -20,33 +21,33 @@ def encode_lsb_fourier(image, message):
     bits = str_to_binary(message)
     nbits = len(bits)
 
-    if len(image.shape) == 2:
-        image = image.reshape((image.shape[0], image.shape[1], 1))
+    image = np.pad(image,
+                   ((0, image.shape[0] % 2), (0, image.shape[1] % 2)),
+                   'constant', constant_values=0)
 
-    nrows, ncols, nchannels = image.shape
+    nrows, ncols = image.shape
 
-    dft = fftn(image)
+    pos = 0
+    for i in range(0, nrows, 2):
+        for j in range(0, ncols, 2):
+            dft = fftn(image[i:i+2, j:j+2])
 
-    for i in range(nrows):
-        for j in range(ncols):
-            for c in range(nchannels):
-                pos = 2 * (ncols * i + nchannels * j) + c
+            for (x, y) in [(0, 1), (1, 0), (1, 1)]:
                 if pos < nbits:
-                    b_real = float_to_binary(dft[i, j, c].real)
-                    b_real.set(bits[pos], -1)
-
-                    b_imag = float_to_binary(dft[i, j, c].imag)
-                    if pos + 1 < nbits:
-                        b_imag.set(bits[pos+1], -1)
-
-                    dft[i, j, c] = complex(
-                        binary_to_float(b_real),
-                        binary_to_float(b_imag)
+                    b = int_to_binary(int(dft[x, y].real), nbits=64, signed=True)
+                    b.set(bits[pos], -1)
+                    dft[x, y] = complex(
+                        float(binary_to_int(b, signed=True)),
+                        dft[x, y].imag
                     )
-                else:
-                    return np.real(ifftn(dft))
+                    pos += 1
 
-    return np.real(ifftn(dft))
+            image[i:i+2, j:j+2] = ifftn(dft).real
+
+            if pos >= nbits:
+                return image
+
+    return image
 
 
 def decode_lsb_fourier(image):
@@ -57,30 +58,25 @@ def decode_lsb_fourier(image):
     :return: (str) hidden message
     """
 
-    if len(image.shape) == 2:
-        image = image.reshape((image.shape[0], image.shape[1], 1))
+    nrows, ncols = image.shape
 
-    nrows, ncols, nchannels = image.shape
-
-    dft = fftn(image)
-
+    pos = 0
     bits, message = [], ""
-    for i in range(nrows):
-        for j in range(ncols):
-            for c in range(nchannels):
-                parts = [dft[i, j, c].real, dft[i, j, c].imag]
+    for i in range(0, nrows, 2):
+        for j in range(0, ncols, 2):
+            dft = fftn(image[i:i+2, j:j+2])
 
-                for p, part in enumerate(parts):
-                    bits.append(float_to_binary(part)[-1])
+            for (x, y) in [(0, 1), (1, 0), (1, 1)]:
+                bits.append(int_to_binary(int(dft[x, y].real), nbits=64, signed=True)[-1])
 
-                    pos = 2 * (ncols * i + nchannels * j + c) + p
-                    if pos % 8 == 7:
-                        message += binary_to_str(bits)
-                        print(message)
-                        bits = []
+                if pos % 8 == 7:
+                    message += binary_to_str(bits)
+                    bits = []
 
-                    if message[-5:] == '<EOS>':
-                        return message[:-5]
+                pos += 1
+
+                if message[-5:] == '<EOS>':
+                    return message[:-5]
 
     return message[:-5]
 
