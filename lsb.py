@@ -30,7 +30,7 @@ def encode_lsb(image, message):
                 pos = ncols * i + nchannels * j + c
                 if pos < nbits:
                     b = int_to_binary(image[i, j, c])
-                    b[-1] = bits[pos]
+                    b.set(bits[pos], -1)
                     image[i, j, c] = binary_to_int(b)
                 else:
                     return image

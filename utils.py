@@ -1,4 +1,5 @@
 from bitarray import bitarray
+import bitstring
 
 
 def str_to_binary(s):
@@ -26,27 +27,55 @@ def binary_to_str(bits):
     return bitarray(bits).tobytes().decode('utf-8')
 
 
-def int_to_binary(z):
+def int_to_binary(z, nbits=8, signed=False):
     """
-    Converts an 8-bit integer into a list of bits.
+    Converts an integer into its binary representation.
 
-    :param z: (int) 8-bit integer
-    :return: (List[int])
+    :param z: (int) integer
+    :param nbits: (int) number of bits needed
+    :param signed: (bool) whether to use signed binary
+        representation of integers
+    :return: (bitstring.BitArray)
     """
 
-    return [int(b) for b in '{:08b}'.format(z)]
+    if signed:
+        return bitstring.BitArray(int=z, length=nbits)
+    else:
+        return bitstring.BitArray(uint=z, length=nbits)
 
 
-def binary_to_int(bits):
+def binary_to_int(b, signed=False):
     """
-    Converts a list of bits into an integer.
+    Converts a binary representation into an integer.
 
-    :param bits: (List[int])
+    :param b: (bitstring.BitArray)
+    :param signed: (bool) whether binary
+        representation is signed
     :return: (int)
     """
 
-    z = 0
-    for bit in bits:
-        z = (z << 1) | bit
+    return b.int if signed else b.uint
 
-    return z
+
+def float_to_binary(f, nbits=64):
+    """
+    Converts a float to its binary representation.
+
+    :param f: (float)
+    :param nbits: (int) number of bits used to represent
+        the input float
+    :return: (bitstring.BitArray)
+    """
+
+    return bitstring.BitArray(float=f, length=nbits)
+
+
+def binary_to_float(b):
+    """
+    Converts a binary representation to its float.
+
+    :param b: (bitstring.BitArray)
+    :return: (float)
+    """
+
+    return b.float
