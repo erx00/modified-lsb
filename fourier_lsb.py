@@ -91,29 +91,6 @@ def encode_lsb_fourier(image, message, nfreq, channel_first=False,
                 image = image.reshape((nrows, ncols, nchannels))
             return image
 
-    # pos = 0
-    # for c in range(nchannels):
-    #     for i in range(0, nrows - nrows % 2, 2):
-    #         for j in range(0, ncols - ncols % 2, 2):
-    #             dft = fftn(image[i:i+2, j:j+2, c])
-    #
-    #             for k in range(dft.size, dft.size - nfreq, -1):
-    #                 (x, y) =
-    #
-    #                 if pos < nbits:
-    #                     b = int_to_binary(int(dft[x, y].real), nbits=64, signed=True)
-    #                     b.set(bits[pos], -1)
-    #                     dft[x, y] = complex(
-    #                         float(binary_to_int(b, signed=True)),
-    #                         dft[x, y].imag
-    #                     )
-    #                     pos += 1
-    #
-    #             image[i:i+2, j:j+2] = ifftn(dft).real
-    #
-    #             if pos >= nbits:
-    #                 return image
-
     if channel_first:
         image = image.reshape((nrows, ncols, nchannels))
     return image
@@ -186,26 +163,6 @@ def decode_lsb_fourier(image, nfreq, channel_first=False,
 
             if message[-5:] == '<EOS>':
                 return message[:-5]
-
-    # nrows, ncols = image.shape
-    #
-    # pos = 0
-    # bits, message = [], ""
-    # for i in range(0, nrows, 2):
-    #     for j in range(0, ncols, 2):
-    #         dft = fftn(image[i:i+2, j:j+2])
-    #
-    #         for (x, y) in [(0, 1), (1, 0), (1, 1)]:
-    #             bits.append(int_to_binary(int(dft[x, y].real), nbits=64, signed=True)[-1])
-    #
-    #             if pos % 8 == 7:
-    #                 message += binary_to_str(bits)
-    #                 bits = []
-    #
-    #             pos += 1
-    #
-    #             if message[-5:] == '<EOS>':
-    #                 return message[:-5]
 
     return message[:-5]
 
