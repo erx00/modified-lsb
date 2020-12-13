@@ -50,7 +50,12 @@ def encode_lsb_fourier(image, message, nfreq, channel_first=False,
 
     pos = 0
     for i, j, k in indices:
-        dft = fftn(image[i:i+2, j:j+2, k:k+2])
+        if channel_first and dim == 2:
+            dft = fftn(image[i:i+1, j:j+2, k:k+2])
+        elif dim == 2:
+            dft = fftn(image[i:i+2, j:j+2, k:k+1])
+        else:
+            dft = fftn(image[i:i+2, j:j+2, k:k+2])
         shape = dft.shape
 
         if dft.size == 8:       # sort by Hamming distance
@@ -132,7 +137,12 @@ def decode_lsb_fourier(image, nfreq, channel_first=False,
     pos = 0
     bits, message = [], ''
     for i, j, k in indices:
-        dft = fftn(image[i:i+2, j:j+2, k:k+2])
+        if channel_first and dim == 2:
+            dft = fftn(image[i:i+1, j:j+2, k:k+2])
+        elif dim == 2:
+            dft = fftn(image[i:i+2, j:j+2, k:k+1])
+        else:
+            dft = fftn(image[i:i+2, j:j+2, k:k+2])
 
         if dft.size == 8:       # sort by Hamming distance
             ls = np.array([0, 1, 2, 4, 3, 5, 6, 7])
