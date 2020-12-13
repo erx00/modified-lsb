@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import convolve2d
+from scipy.signal import convolve, convolve2d
 
 
 def mse(image1, image2):
@@ -65,30 +65,25 @@ def ssim(image1, image2):
         image1 = image1.reshape((image1.shape[0], image1.shape[1], 1))
         image2 = image2.reshape((image1.shape[0], image1.shape[1], 1))
 
-    _, _, nchannels = image1.shape
+    kernel = gaussian_kernel(11, 1.5)[:, :, None]
 
-    kernel = gaussian_kernel(11, 1.5)
+    mu_x = convolve(image1, kernel, mode='valid')
+    mu_y = convolve(image2, kernel, mode='valid')
 
-    ssims = []
-    for c in range(nchannels):
-        mu_x = convolve2d(image1[:, :, c], kernel, mode='valid')
-        mu_y = convolve2d(image2[:, :, c], kernel, mode='valid')
+    mu_x_2 = np.square(mu_x)
+    mu_y_2 = np.square(mu_y)
+    mu_x_mu_y = mu_x * mu_y
 
-        mu_x_2 = np.square(mu_x)
-        mu_y_2 = np.square(mu_y)
-        mu_x_mu_y = mu_x * mu_y
+    var_x = convolve(np.square(image1), kernel, mode='valid') - mu_x_2
+    var_y = convolve(np.square(image2), kernel, mode='valid') - mu_y_2
 
-        var_x = convolve2d(np.square(image1[:, :, c]), kernel, mode='valid') - mu_x_2
-        var_y = convolve2d(np.square(image2[:, :, c]), kernel, mode='valid') - mu_y_2
+    sigma_xy = convolve(image1 * image2, kernel, mode='valid') - mu_x_mu_y
 
-        sigma_xy = convolve2d(image1[:, :, c] * image2[:, :, c], kernel, mode='valid') - mu_x_mu_y
+    c1 = (0.01 * 255)**2
+    c2 = (0.03 * 255)**2
 
-        c1 = (0.01 * 255)**2
-        c2 = (0.03 * 255)**2
+    ssim_mat = (2 * mu_x_mu_y + c1) * (2 * sigma_xy + c2) \
+        / ((mu_x_2 + mu_y_2 + c1) * (var_x + var_y + c2))
 
-        ssim_mat = (2 * mu_x_mu_y + c1) * (2 * sigma_xy + c2) \
-            / ((mu_x_2 + mu_y_2 + c1) * (var_x + var_y + c2))
+    return np.mean(ssim_mat)
 
-        ssims.append(np.mean(ssim_mat))
-
-    return np.mean(ssims)

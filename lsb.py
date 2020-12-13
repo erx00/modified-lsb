@@ -27,9 +27,9 @@ def encode_lsb(image, message):
     for i in range(nrows):
         for j in range(ncols):
             for c in range(nchannels):
-                pos = ncols * i + nchannels * j + c
+                pos = ncols * nchannels * i + nchannels * j + c
                 if pos < nbits:
-                    b = int_to_binary(image[i, j, c])
+                    b = int_to_binary(int(image[i, j, c]))
                     b.set(bits[pos], -1)
                     image[i, j, c] = binary_to_int(b)
                 else:
@@ -57,9 +57,9 @@ def decode_lsb(image):
     for i in range(nrows):
         for j in range(ncols):
             for c in range(nchannels):
-                bits.append(int_to_binary(image[i, j, c])[-1])
+                bits.append(int_to_binary(int(image[i, j, c]))[-1])
 
-                pos = ncols * i + nchannels * j + c
+                pos = ncols * nchannels * i + nchannels * j + c
                 if pos % 8 == 7:
                     message += binary_to_str(bits)
                     bits = []
