@@ -2,3 +2,5 @@ venv/
 cat.jpg
 .idea/
 __pycache__
+images/
+.DS_Store
