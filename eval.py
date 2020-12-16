@@ -94,10 +94,10 @@ def eval_lsb(images, ntrials, max_len=0, output=None,
                 + string.punctuation + ' '
             ) for _ in range(max_len))
 
-            if len(images[i].shape) == 3:
-                image = images[i][0:256, 0:256, :]  # normalization
+            if len(images[i].shape) == 2:
+                image = images[i][0:256, 0:256, None]  # normalization
             else:
-                image = images[i][0:256, 0:256]
+                image = images[i][0:256, 0:256, :]
             cover = np.copy(image)
 
             stego = encode_lsb(image, message)
@@ -189,10 +189,10 @@ def eval_lsb_fourier(images, ntrials, nfreq, channel_first=False,
                 + string.punctuation + ' '
             ) for _ in range(max_len))
 
-            if len(images[i].shape) == 3:
-                image = images[i][0:256, 0:256, :].astype(float)
+            if len(images[i].shape) == 2:
+                image = images[i][0:256, 0:256, None].astype(float)
             else:
-                image = images[i][0:256, 0:256]
+                image = images[i][0:256, 0:256, :].astype(float)
             cover = np.copy(image)
 
             stego = encode_lsb_fourier(
