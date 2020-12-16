@@ -94,7 +94,10 @@ def eval_lsb(images, ntrials, max_len=0, output=None,
                 + string.punctuation + ' '
             ) for _ in range(max_len))
 
-            image = images[i][0:256, 0:256, :]  # normalization
+            if len(images[i].shape) == 3:
+                image = images[i][0:256, 0:256, :]  # normalization
+            else:
+                image = images[i][0:256, 0:256]
             cover = np.copy(image)
 
             stego = encode_lsb(image, message)
@@ -186,7 +189,10 @@ def eval_lsb_fourier(images, ntrials, nfreq, channel_first=False,
                 + string.punctuation + ' '
             ) for _ in range(max_len))
 
-            image = images[i][0:256, 0:256, :].astype(float)
+            if len(images[i].shape) == 3:
+                image = images[i][0:256, 0:256, :].astype(float)
+            else:
+                image = images[i][0:256, 0:256]
             cover = np.copy(image)
 
             stego = encode_lsb_fourier(
@@ -220,7 +226,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     # general settings
-    parser.add_argument('--alg', type=str, choices=['original, fourier, gabor'])
+    parser.add_argument('--alg', type=str, choices=['original', 'fourier', 'gabor'])
     parser.add_argument('--nimages', type=int, default=256)
     parser.add_argument('--ntrials', type=int, default=10)
     parser.add_argument('--grayscale', dest='grayscale', action='store_true')
@@ -247,9 +253,9 @@ def main():
             images, args.ntrials, args.msg_len,
             args.output_path, args.checkpoint
         )
-    elif args.alg == 'fourier_lsb':
+    elif args.alg == 'fourier':
         mses, ssims = eval_lsb_fourier(
-            images, args.ntrials, args.nfreqs, args.channel_first,
+            images, args.ntrials, args.nfreq, args.channel_first,
             args.lowest_first, args.dim, args.msg_len,
             args.output_path, args.checkpoint
         )
