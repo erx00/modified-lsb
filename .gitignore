@@ -4,3 +4,4 @@ cat.jpg
 __pycache__
 images/
 .DS_Store
+data/
