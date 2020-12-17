@@ -62,6 +62,17 @@ def main():
             copy = np.copy(color)
             stego = encode_lsb_fourier(copy, m, i + 1, dim=3)
             plt.imsave(args.dir + str(i+1) + '_dim3_color.png', normalize(stego))
+    elif args.alg == 'gabor':
+        for i in range(4):
+            for j in range(2):
+                copy = np.copy(color)
+                stego = encode_gabor_lsb(copy, m, i*90, j)
+                blurb = "edge" if not j else "invert"
+                plt.imsave(args.dir + str(i*90) + '_' + blurb + '_color.png', normalize(stego))
+
+                copy = np.copy(gray)
+                stego = encode_gabor_lsb(copy, m, i*90, j)
+                plt.imsave(args.dir + str(i*90) + '_' + blurb + '_gray.png', normalize(stego)[:, :, None], cmap='gray')
 
 
 if __name__ == '__main__':

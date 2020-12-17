@@ -7,7 +7,7 @@ from utils import str_to_binary, binary_to_str
 from utils import int_to_binary, binary_to_int
 
 
-def encode_gabor_lsb(original_img, msg, key, sigma=0):
+def encode_gabor_lsb(original_img, msg, key, invert=False, sigma=0):
     """
     Encodes a message into the spatial domain specified by a gabor filter. 
 
@@ -15,9 +15,12 @@ def encode_gabor_lsb(original_img, msg, key, sigma=0):
     :param msg:          (str)     message to encode
     :param key:          (float)   a number [0-360) that will act as the 
                                    oritentation of the gabor filter
+    :param invert:       (bool)    if true, encode in non-edge pixels 
     :param sigma:        (int)     apply gaussian blur to image with this sigma value
     :return:             (ndarray) stego image
     """
+    if sigma > 20:                                                             #  prevent infinite looping
+        return None
 
     key = (key/180.) * np.pi                                                   #  get orientation in radians
     msg += '<EOS>'
@@ -46,7 +49,8 @@ def encode_gabor_lsb(original_img, msg, key, sigma=0):
     for i in range(nrows):
         for j in range(ncols):
             for c in range(nchannels):
-                if filteredim[c][i, j] < thresholds[c]:                        #  skip pixel color if below threshold
+                if (not invert and filteredim[c][i, j] < thresholds[c]) \
+                    or (invert and filteredim[c][i, j] >= thresholds[c]):      #  skip pixel color if below threshold
                     continue
 
                 if bitpos < nbits:                                             #  only change the LSB of the integer part
@@ -57,22 +61,25 @@ def encode_gabor_lsb(original_img, msg, key, sigma=0):
                     img[i, j, c] = binary_to_int(b, signed=True) + fpart
                     bitpos += 1
                 else:                                                          #  end of message 
-                    return check_match(img, sigma, key, msg, gfilter, filteredim, thresholds)
+                    return check_match(img, sigma, key, msg, invert, gfilter, filteredim, thresholds)
     
-    return check_match(img, sigma, key, msg, gfilter, filteredim, thresholds)  #  end of image
+    return check_match(img, sigma, key, msg, invert, gfilter, filteredim, thresholds)  #  end of image
     
 
-def decode_gabor_lsb(original_img, key, sigma=0, recurse=True):
+def decode_gabor_lsb(original_img, key, invert=False, recurse=True, sigma=0):
     """
     Decodes message from the spatial domain of an image using a gabor filter specified by key.
 
     :param original_img: (ndarray) stego image
     :param key:          (float)   range: [0, 360) same as the key used in encode
-    :param sigma:        (int)     apply gaussian blur with sigma before extracting message
+    :param invert:       (bool)    if true, extract bits from non-edge pixels
     :param recurse:      (bool)    recursively call itself with increasing sigmas until a valid
                                    decoding is found
+    :param sigma:        (int)     apply gaussian blur with sigma before extracting message
     :return:             (str)     hidden message
     """
+    if sigma > 20:                                                             
+        return None
 
     key = (key/180.) * np.pi
     gfilter = gaborfilter(key)
@@ -99,7 +106,8 @@ def decode_gabor_lsb(original_img, key, sigma=0, recurse=True):
     for i in range(nrows):
         for j in range(ncols):
             for c in range(nchannels):
-                if filteredim[c][i, j] < thresholds[c]:
+                if (not invert and filteredim[c][i, j] < thresholds[c]) \
+                    or (invert and filteredim[c][i, j] >= thresholds[c]):
                     continue
             
                 bits.append(int_to_binary(int(img[i, j, c]), nbits=64, signed=True)[-1])
@@ -109,7 +117,7 @@ def decode_gabor_lsb(original_img, key, sigma=0, recurse=True):
                         message += binary_to_str(bits)                         #  try to decode the byte
                     except UnicodeDecodeError:
                         if recurse:                                            #  recurse with higher sigma
-                            return decode_gabor_lsb(original_img, key, sigma + 1)
+                            return decode_gabor_lsb(original_img, key, invert, recurse, sigma + 1)
                         return None                                            #  return none to signify 
                                                                                #  invalid decoding
                     bits = []
@@ -122,7 +130,7 @@ def decode_gabor_lsb(original_img, key, sigma=0, recurse=True):
     return message[:-5]
 
 
-def check_match(img, sigma, key, msg, gfilter, filteredim, thresholds):
+def check_match(img, sigma, key, msg, invert, gfilter, filteredim, thresholds):
     """
     Used in encode to ensure that the message in the stego is recoverable by decode.
 
@@ -135,10 +143,10 @@ def check_match(img, sigma, key, msg, gfilter, filteredim, thresholds):
     :param thresholds:  (list)    list of thresholds used for each channel
     :return:            (ndarray) an "invertible" stego 
     """
-    decoded_msg = decode_gabor_lsb(img, key, sigma, False)
+    decoded_msg = decode_gabor_lsb(img, key, invert, False, sigma)
     if decoded_msg and decoded_msg in msg:
         return img
-    return encode_gabor_lsb(img, msg, key, sigma + 1)
+    return encode_gabor_lsb(img, msg, key, invert, sigma + 1)
 
     # nchannels = img.shape[2]
     # test_stego = img.copy()/256
