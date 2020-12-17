@@ -8,3 +8,6 @@ data/
 cat.png
 gray_cat.png
 norm_data/
+examples/
+images/
+results/

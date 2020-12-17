@@ -6,6 +6,7 @@ import progressbar
 import argparse
 import os
 import re
+import matplotlib.pyplot as plt
 
 from lsb import encode_lsb, decode_lsb
 from fourier_lsb import encode_lsb_fourier, decode_lsb_fourier
@@ -222,6 +223,111 @@ def eval_lsb_fourier(images, ntrials, nfreq, channel_first=False,
     return mses, ssims
 
 
+def eval_lsb_gabor(images, ntrials, invert=False, key=0,
+                   max_len=0, output=None, checkpoint=False):
+    """
+    Evaluates the Gabor LSB algorithm.
+
+    :param images: (List[ndarray]) images
+    :param ntrials: (int) number of trials per image
+    :param invert: (bool) encode into non-edges if true,
+        default encodes into edges
+    :param key: (float) the key to use per image, 
+        if no key specified, then default is 0.
+    :param max_len: (int) maximum message length
+    :param output: (str) where to save data in real time
+    :param checkpoint: (bool) if true, load previous data
+        from output
+    :return: (List[float], List[float]) MSE, SSIM
+    """
+
+    if not max_len:
+        max_len = 1000
+
+    mses, ssims, enc_ratio = [], [], []
+
+    if checkpoint:
+        with open(output, 'r') as f:
+            data = f.readlines()
+
+        for datum in data:
+            m = re.search(r'mse = (?P<mse>\S+) \| ssim = (?P<ssim>\S+) \| encoding ratio = (?P<enc_ratio>\S+)', datum)
+
+            if m:
+                mses.append(float(m.group('mse')))
+                ssims.append(float(m.group('ssim')))
+                enc_ratio.append(float(m.group('enc_ratio')))
+
+        if output:
+            output = open(output, 'a')
+    else:
+        if output:
+            output = open(output, 'w')
+
+    so_far = len(mses)
+
+    progress = progressbar.ProgressBar(
+        maxval=len(images) - so_far,
+        widgets=['progress',
+                 progressbar.Bar('=', '[', ']'),
+                 ' ',
+                 progressbar.Percentage(),
+                 ' ',
+                 progressbar.ETA()]
+    )
+    progress.start()
+
+    for i in range(so_far, len(images)):
+        mse_, ssim_, enc_len_ = 0, 0, 0
+        for _ in range(ntrials):
+            message = ''.join(random.choice(
+                string.ascii_letters + string.digits
+                + string.punctuation + ' '
+            ) for _ in range(max_len))
+
+            if len(images[i].shape) == 2:
+                image = images[i][0:256, 0:256, None].astype(float)
+            else:
+                image = images[i][0:256, 0:256, :].astype(float)
+            cover = np.copy(image)
+
+            stego = encode_gabor_lsb(
+                image, message, key, invert
+            )
+
+            if stego is None:
+                print(f"image {i + so_far} failed to encode")
+                break
+            
+            decoded_msg = decode_gabor_lsb(
+                stego, key, invert
+            )
+
+            if decoded_msg is None:
+                print(f"image {i + so_far} failed to decode")
+                break
+            
+            if not message.startswith(decoded_msg):
+                print("decoded message does not match original -- skipped")
+
+            mse_ += mse(cover, stego)
+            ssim_ += ssim(cover, stego)
+            enc_len_ += len(decoded_msg) 
+
+        if output:
+            print('mse =', mse_ / ntrials, '| ssim =', ssim_ / ntrials, 
+                  '| encoding ratio =', round(enc_len_ / ntrials / max_len, 4),
+                  file=output, flush=True)
+        mses.append(mse_ / ntrials)
+        ssims.append(ssim_ / ntrials)
+        enc_ratio.append(round(enc_len_ / ntrials / max_len, 3))
+
+        progress.update(i)
+
+    progress.finish()
+
+    return mses, ssims, enc_ratio
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -241,8 +347,12 @@ def main():
     parser.add_argument('--lowest_first', dest='lowest_first', action='store_true')
     parser.add_argument('--dim', type=int, default=2, choices=[2, 3])
 
+    # settings for gabor lsb
+    parser.add_argument('--invert', dest='invert', action='store_true')
+    parser.add_argument('--key', type=float, default=0)
+
     parser.set_defaults(grayscale=False, channel_first=False, lowest_first=False,
-                        checkpoint=False)
+                        checkpoint=False, invert=False)
 
     args = parser.parse_args()
 
@@ -259,9 +369,13 @@ def main():
             args.lowest_first, args.dim, args.msg_len,
             args.output_path, args.checkpoint
         )
+    elif args.alg == 'gabor':
+        mses, ssims, enc_ratio = eval_lsb_gabor(
+            images, args.ntrials, args.invert, args.key,
+            args.msg_len, args.output_path, args.checkpoint
+        )
 
 
 if __name__ == '__main__':
     main()
-
-
+ 
