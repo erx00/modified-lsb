@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.signal import convolve, convolve2d
+from scipy.signal import convolve
+from examples import normalize
 
 
 def mse(image1, image2):
@@ -11,7 +12,7 @@ def mse(image1, image2):
     :return: (float) MSE
     """
 
-    return np.mean(np.square(image1 - image2))
+    return np.mean(np.square(normalize(image1) - normalize(image2)))
 
 
 def to_grayscale(image):
@@ -60,6 +61,9 @@ def ssim(image1, image2):
     :param image2: (ndarray)
     :return: (float) SSIM
     """
+
+    image1 = normalize(image1)
+    image2 = normalize(image2)
 
     if len(image1.shape) == 2:
         image1 = image1.reshape((image1.shape[0], image1.shape[1], 1))
