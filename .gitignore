@@ -7,10 +7,7 @@ images/
 data/
 cat.png
 gray_cat.png
-<<<<<<< HEAD
 norm_data/
-=======
 examples/
 images/
 results/
->>>>>>> fe2531c... added invert funct and gabor metrics
