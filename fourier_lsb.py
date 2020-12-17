@@ -89,7 +89,12 @@ def encode_lsb_fourier(image, message, nfreq, channel_first=False,
         if dft.shape != shape:
             dft = dft.reshape((2, 2, 1))
 
-        image[i:i+2, j:j+2, k:k+2] = ifftn(dft).real
+        if channel_first and dim == 2:
+            image[i:i+1, j:j+2, k:k+2] = ifftn(dft).real
+        elif dim == 2:
+            image[i:i+2, j:j+2, k:k+1] = ifftn(dft).real
+        else:
+            image[i:i+2, j:j+2, k:k+2] = ifftn(dft).real
 
         if pos >= nbits:
             if channel_first:
