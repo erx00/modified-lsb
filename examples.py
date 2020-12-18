@@ -13,7 +13,7 @@ from gabor_lsb import encode_gabor_lsb, decode_gabor_lsb
 def normalize(image):
     if np.min(image) >= 0 and np.max(image) <= 255:
         return image / 255.
-    elif np.min(image) < 0:
+    if np.min(image) < 0:
         return (image - np.min(image)) / (np.max(image) - np.min(image))
     else:
         return image / np.max(image)

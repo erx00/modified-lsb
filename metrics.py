@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.signal import convolve
-from examples import normalize
+
+
+def normalize(image):
+    return (image - np.min(image)) / (np.max(image)-np.min(image))
 
 
 def mse(image1, image2):
