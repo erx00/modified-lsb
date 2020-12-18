@@ -92,7 +92,7 @@ def save_data(filenames, mu_mses, mu_ssims, sigma_mses, sigma_ssims,
             'mu_ssim': mu_ssims[i],
             'sigma_mse': sigma_mses[i] if isinstance(sigma_mses[i], float)
             else list(sigma_mses[i]),
-            'sigma_ssim': sigma_mses[i] if isinstance(sigma_ssims[i], float)
+            'sigma_ssim': sigma_ssims[i] if isinstance(sigma_ssims[i], float)
             else list(sigma_ssims[i])
         }
 
